@@ -1,20 +1,17 @@
-# SunCalcPy
+# SunCalcMicroPy
 
-A Python library for calculating sun/moon times, positions and phases.  Includes methods for getting:
+This is a fork of [suncalcpy](https://github.com/Broham/suncalcPy), adapted to run in micropython without the moon functionality.
+
+A (Micro)Python library for calculating sun times, and positions.  Includes methods for getting:
 
  * sunrise
  * sunset 
- * moonrise
- * moonset
  * golden hour
  * sun position 
- * moon position 
- * moon illumination
  * and more!
 
-### Installing
+ #### [Important] for any sort of meaningful calculations you will need to use a micropython port with double-precision floats.
 
-`pip install suncalcPy`
 
 ### Usage examples:
 
@@ -22,7 +19,7 @@ A Python library for calculating sun/moon times, positions and phases.  Includes
 
 ```
 >>> import suncalc
->>> suncalc.getTimes(datetime.now(), 37.7749, -122.4194)
+>>> suncalc.getTimes(datetime.now().timetuple(), 37.7749, -122.4194)
 {
    'sunriseEnd': '2017-09-06 06:48:24', 
    'goldenHourEnd': '2017-09-06 07:20:27', 
@@ -36,28 +33,5 @@ A Python library for calculating sun/moon times, positions and phases.  Includes
    'dawn': '2017-09-06 06:19:04', 
    'nauticalDusk': '2017-09-06 20:31:13', 
    'sunrise': '2017-09-06 06:45:40'
-}
-```
-
-##### Get moon illumination information:
-
-```
->>> import suncalc
->>> suncalc.getMoonIllumination(datetime.now())
-{
-   'phase': 0.5198419002220316, 
-   'angle': 1.574687975565145, 
-   'fraction': 0.9961193570459752
-}
-```
-
-##### Get moonrise/moonset times for San Francisco:
-
-```
->>> import suncalc
->>> suncalc.getMoonTimes(datetime.now(), 37.7749, -122.4194)
-{
-   'rise': datetime.datetime(2017, 9, 6, 20, 4, 29, 213367), 
-   'set': datetime.datetime(2017, 9, 6, 6, 56, 30, 536332)
 }
 ```
