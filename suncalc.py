@@ -1,7 +1,5 @@
 import math
-from datetime import datetime, timedelta
 import time
-import calendar
 
 PI   = 3.141592653589793 # math.pi
 sin  = math.sin
@@ -18,14 +16,16 @@ J1970 = 2440588
 J2000 = 2451545
 J0 = 0.0009
 
-times  = [
-    [-0.833, 'sunrise',       'sunset'      ],
-    [  -0.3, 'sunriseEnd',    'sunsetStart' ],
-    [    -6, 'dawn',          'dusk'        ],
-    [   -12, 'nauticalDawn',  'nauticalDusk'],
-    [   -18, 'nightEnd',      'night'       ],
-    [     6, 'goldenHourEnd', 'goldenHour'  ]
+times = [
+    (-0.833, 'sunrise',       'sunset'      ),
+    (  -0.3, 'sunriseEnd',    'sunsetStart' ),
+    (    -6, 'dawn',          'dusk'        ),
+    (   -12, 'nauticalDawn',  'nauticalDusk'),
+    (   -18, 'nightEnd',      'night'       ),
+    (     6, 'goldenHourEnd', 'goldenHour' )
 ]
+
+timeTuple = tuple[int, ...]
 
 def rightAscension(l, b): 
     return atan(sin(l) * cos(e) - tan(b) * sin(e), cos(l))
@@ -42,13 +42,13 @@ def altitude(H, phi, dec):
 def siderealTime(d, lw):
      return rad * (280.16 + 360.9856235 * d) - lw
 
-def toJulian(date):
-    return (time.mktime(date.timetuple()) * 1000) / dayMs - 0.5 + J1970
+def toJulian(date: timeTuple)->float:
+    return (time.mktime(date) * 1000) / dayMs - 0.5 + J1970 # type: ignore
 
-def fromJulian(j):
-    return datetime.fromtimestamp(((j + 0.5 - J1970) * dayMs)/1000.0)
+def fromJulian(j: float)-> timeTuple:
+    return time.localtime(((j + 0.5 - J1970) * dayMs)/1000.0)
 
-def toDays(date):   
+def toDays(date: timeTuple) -> float:   
     return toJulian(date) - J2000
 
 def julianCycle(d, lw):
@@ -92,7 +92,7 @@ def getSetJ(h, lw, phi, dec, n, M, L):
     return solarTransitJ(a, M, L)
 
 # geocentric ecliptic coordinates of the moon
-def moonCoords(d):
+def moonCoords(d: float):
     L = rad * (218.316 + 13.176396 * d)
     M = rad * (134.963 + 13.064993 * d) 
     F = rad * (93.272 + 13.229350 * d)  
@@ -107,7 +107,7 @@ def moonCoords(d):
         dist=dt
     )
 
-def getMoonIllumination(date):
+def getMoonIllumination(date: timeTuple):
     """Gets illumination properties of the moon for the given time."""
     d = toDays(date)
     s = sunCoords(d)
@@ -125,11 +125,11 @@ def getMoonIllumination(date):
         angle= angle
     )
 
-def getSunrise(date, lat, lng):
+def getSunrise(date: timeTuple, lat, lng):
     ret = getTimes(date, lat, lng)
     return ret["sunrise"]
 
-def getTimes(date, lat, lng, height=0):
+def getTimes(date: timeTuple, lat, lng, height=0):
     """Gets sun rise/set properties for the given time, location and height."""
     lw = rad * -lng
     phi = rad * lat
@@ -147,8 +147,8 @@ def getTimes(date, lat, lng, height=0):
     Jnoon = solarTransitJ(ds, M, L)
 
     result = dict(
-        solarNoon=fromJulian(Jnoon).strftime('%Y-%m-%d %H:%M:%S'),
-        nadir=fromJulian(Jnoon - 0.5).strftime('%Y-%m-%d %H:%M:%S')
+        solarNoon = formatDate(fromJulian(Jnoon)),
+        nadir = formatDate(fromJulian(Jnoon - 0.5))
     )
 
     for i in range(0, len(times)):
@@ -157,28 +157,30 @@ def getTimes(date, lat, lng, height=0):
 
         Jset = getSetJ(h0, lw, phi, dec, n, M, L)
         Jrise = Jnoon - (Jset - Jnoon)
-        result[time[1]] = fromJulian(Jrise).strftime('%Y-%m-%d %H:%M:%S')
-        result[time[2]] = fromJulian(Jset).strftime('%Y-%m-%d %H:%M:%S')
+        result[time[1]] = formatDate(fromJulian(Jrise))
+        result[time[2]] = formatDate(fromJulian(Jset))
 
     return result
 
-def hoursLater(date, h):
-    return date + timedelta(hours=h)
+def hoursLater(date: float, h) -> float:
+    return date + (60 * 60 * h)
 
-def getMoonTimes(date, lat, lng):
+def getMoonTimes(date: timeTuple, lat, lng) -> dict[str, str | bool]:
     """Gets moon rise/set properties for the given time and location."""
-
-    t = date.replace(hour=0,minute=0,second=0)
+    date_as_list = list(date)
+    date_as_list[3:6] = [0,0,0]
+    date_no_time = tuple(date_as_list)
+    t = time.mktime(tuple(date_as_list))# type: ignore
 
     hc = 0.133 * rad
-    h0 = getMoonPosition(t, lat, lng)["altitude"] - hc
+    h0 = getMoonPosition(date_no_time, lat, lng)["altitude"] - hc
     rise = 0
     sett = 0
 
     # go in 2-hour chunks, each time seeing if a 3-point quadratic curve crosses zero (which means rise or set)
     for i in range(1,25,2):
-        h1 = getMoonPosition(hoursLater(t, i), lat, lng)["altitude"] - hc
-        h2 = getMoonPosition(hoursLater(t, i + 1), lat, lng)["altitude"] - hc
+        h1 = getMoonPosition(time.localtime(hoursLater(t, i)), lat, lng)["altitude"] - hc
+        h2 = getMoonPosition(time.localtime(hoursLater(t, i + 1)), lat, lng)["altitude"] - hc
 
         a = (h0 + h2) / 2 - h1
         b = (h2 - h0) / 2
@@ -213,12 +215,12 @@ def getMoonTimes(date, lat, lng):
 
         h0 = h2
 
-    result = dict()
+    result: dict[str, str | bool] = dict()
 
     if (rise):
-        result["rise"] = hoursLater(t, rise)
+        result["rise"] = formatDate(time.localtime(hoursLater(t, rise)))
     if (sett):
-        result["set"] = hoursLater(t, sett)
+        result["set"] = formatDate(time.localtime(hoursLater(t, sett)))
 
     if (not rise and not sett):
         value = 'alwaysUp' if ye > 0 else 'alwaysDown'
@@ -226,7 +228,7 @@ def getMoonTimes(date, lat, lng):
 
     return result
 
-def getMoonPosition(date, lat, lng):
+def getMoonPosition(date: timeTuple, lat, lng):
     """Gets positional attributes of the moon for the given time and location.""" 
 
     lw  = rad * -lng
@@ -248,7 +250,7 @@ def getMoonPosition(date, lat, lng):
         parallacticAngle=pa
     )
 
-def getPosition(date, lat, lng):
+def getPosition(date: timeTuple, lat, lng):
     """Returns positional attributes of the sun for the given time and location."""
     lw  = rad * -lng
     phi = rad * lat
@@ -261,3 +263,11 @@ def getPosition(date, lat, lng):
         azimuth=azimuth(H, phi, c["dec"]),
         altitude=altitude(H, phi, c["dec"])
     )
+
+def formatDate(date) -> str:
+    """Formats a date tuple into '%Y-%m-%d %H:%M:%S'"""
+    return f'{pad(date[0],2)}-{pad(date[1],2)}-{pad(date[2],2)} {pad(date[3],2)}:{pad(date[4],2)}:{pad(date[5],2)}'
+
+def pad(number: int, zeros: int)-> str:
+    """Converts a number to a string with padding with zeros"""
+    return "0"*(max(zeros - len(str(number)),0)) + str(number)

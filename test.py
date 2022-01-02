@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import pytz
 import suncalc
 import unittest
 
@@ -14,10 +13,10 @@ class SunCalcTestCases(unittest.TestCase):
         """Setup for the test cases."""
 
         self.date = datetime(2013, 3, 5)
-        self.utc_dt = self.date.astimezone(pytz.utc)
+        self.utc_dt = self.date.timetuple()
 
         self.moon_date = datetime(2013, 3, 4)
-        self.utc_moon_dt = self.moon_date.astimezone(pytz.utc)
+        self.utc_moon_dt = self.moon_date.timetuple()
 
         self.lat = 50.5
         self.lng = 30.5
@@ -87,9 +86,9 @@ class SunCalcTestCases(unittest.TestCase):
         # despite the code matching the JavaScript implementation, moon times don't come
         # out as expected from their test cases - https://github.com/mourner/suncalc
         # self.assertEqual(moonTimes["rise"].strftime('%Y-%m-%d %H:%M:%S'), '2013-03-04 23:54:29')
-        self.assertEqual(moonTimes["rise"].strftime('%Y-%m-%d %H:%M:%S'), '2013-03-04 23:57:55')
+        self.assertEqual(moonTimes["rise"], '2013-03-04 23:57:55')
         # self.assertEqual(moonTimes["set"].strftime('%Y-%m-%d %H:%M:%S'), '2013-03-04 07:47:58')
-        self.assertEqual(moonTimes["set"].strftime('%Y-%m-%d %H:%M:%S'), '2013-03-04 07:28:41')
+        self.assertEqual(moonTimes["set"], '2013-03-04 07:28:41')
 
 if __name__ == '__main__':
     unittest.main()
