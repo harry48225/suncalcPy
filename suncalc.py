@@ -25,8 +25,6 @@ times = [
     (     6, 'goldenHourEnd', 'goldenHour' )
 ]
 
-timeTuple = tuple[int, ...]
-
 def rightAscension(l, b): 
     return atan(sin(l) * cos(e) - tan(b) * sin(e), cos(l))
 
@@ -42,13 +40,13 @@ def altitude(H, phi, dec):
 def siderealTime(d, lw):
      return rad * (280.16 + 360.9856235 * d) - lw
 
-def toJulian(date: timeTuple)->float:
+def toJulian(date: tuple)->float:
     return (time.mktime(date) * 1000) / dayMs - 0.5 + J1970 # type: ignore
 
-def fromJulian(j: float)-> timeTuple:
+def fromJulian(j: float)-> tuple:
     return time.localtime(((j + 0.5 - J1970) * dayMs)/1000.0)
 
-def toDays(date: timeTuple) -> float:   
+def toDays(date: tuple) -> float:   
     return toJulian(date) - J2000
 
 def julianCycle(d, lw):
@@ -107,7 +105,7 @@ def moonCoords(d: float):
         dist=dt
     )
 
-def getMoonIllumination(date: timeTuple):
+def getMoonIllumination(date: tuple):
     """Gets illumination properties of the moon for the given time."""
     d = toDays(date)
     s = sunCoords(d)
@@ -125,11 +123,11 @@ def getMoonIllumination(date: timeTuple):
         angle= angle
     )
 
-def getSunrise(date: timeTuple, lat, lng):
+def getSunrise(date: tuple, lat, lng):
     ret = getTimes(date, lat, lng)
     return ret["sunrise"]
 
-def getTimes(date: timeTuple, lat, lng, height=0):
+def getTimes(date: tuple, lat, lng, height=0):
     """Gets sun rise/set properties for the given time, location and height."""
     lw = rad * -lng
     phi = rad * lat
@@ -165,7 +163,7 @@ def getTimes(date: timeTuple, lat, lng, height=0):
 def hoursLater(date: float, h) -> float:
     return date + (60 * 60 * h)
 
-def getMoonTimes(date: timeTuple, lat, lng) -> dict[str, str | bool]:
+def getMoonTimes(date: tuple, lat, lng) -> dict[str, str | bool]:
     """Gets moon rise/set properties for the given time and location."""
     date_as_list = list(date)
     date_as_list[3:6] = [0,0,0]
@@ -228,7 +226,7 @@ def getMoonTimes(date: timeTuple, lat, lng) -> dict[str, str | bool]:
 
     return result
 
-def getMoonPosition(date: timeTuple, lat, lng):
+def getMoonPosition(date: tuple, lat, lng):
     """Gets positional attributes of the moon for the given time and location.""" 
 
     lw  = rad * -lng
@@ -250,7 +248,7 @@ def getMoonPosition(date: timeTuple, lat, lng):
         parallacticAngle=pa
     )
 
-def getPosition(date: timeTuple, lat, lng):
+def getPosition(date: tuple, lat, lng):
     """Returns positional attributes of the sun for the given time and location."""
     lw  = rad * -lng
     phi = rad * lat
