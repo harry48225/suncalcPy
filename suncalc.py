@@ -44,7 +44,7 @@ def toJulian(date: tuple)->float:
     return (time.mktime(date) * 1000) / dayMs - 0.5 + J1970 # type: ignore
 
 def fromJulian(j: float)-> tuple:
-    return time.localtime(((j + 0.5 - J1970) * dayMs)/1000.0)
+    return time.localtime(int(((j + 0.5 - J1970) * dayMs)/1000.0))
 
 def toDays(date: tuple) -> float:   
     return toJulian(date) - J2000
@@ -177,8 +177,8 @@ def getMoonTimes(date: tuple, lat, lng) -> dict[str, str | bool]:
 
     # go in 2-hour chunks, each time seeing if a 3-point quadratic curve crosses zero (which means rise or set)
     for i in range(1,25,2):
-        h1 = getMoonPosition(time.localtime(hoursLater(t, i)), lat, lng)["altitude"] - hc
-        h2 = getMoonPosition(time.localtime(hoursLater(t, i + 1)), lat, lng)["altitude"] - hc
+        h1 = getMoonPosition(time.localtime(int(hoursLater(t, i))), lat, lng)["altitude"] - hc
+        h2 = getMoonPosition(time.localtime(int(hoursLater(t, i + 1))), lat, lng)["altitude"] - hc
 
         a = (h0 + h2) / 2 - h1
         b = (h2 - h0) / 2
@@ -216,9 +216,9 @@ def getMoonTimes(date: tuple, lat, lng) -> dict[str, str | bool]:
     result: dict[str, str | bool] = dict()
 
     if (rise):
-        result["rise"] = formatDate(time.localtime(hoursLater(t, rise)))
+        result["rise"] = formatDate(time.localtime(int(hoursLater(t, rise))))
     if (sett):
-        result["set"] = formatDate(time.localtime(hoursLater(t, sett)))
+        result["set"] = formatDate(time.localtime(int(hoursLater(t, sett))))
 
     if (not rise and not sett):
         value = 'alwaysUp' if ye > 0 else 'alwaysDown'

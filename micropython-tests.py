@@ -1,9 +1,23 @@
 import suncalc
 import time
+import re
 
 def near(val1, val2):
     # print(f"near: {abs(val1 - val2)} < {1E-15}")
-    return abs(val1 - val2) < 1E-15
+    return abs(val1 - val2) < 1E-2 # Micropython has low precision
+
+def parseDate(date:str)->tuple:
+    splitter = re.compile("\s|:|-")
+    dateList = [int(x) for x in list(splitter.split(date))]
+    while len(dateList) < 8:
+        dateList.append(0)
+    return tuple(dateList)
+
+def dateNear(date1:str, date2:str):
+    '''determines if dates are within 5 minutes of each other'''
+    d1 = time.mktime(parseDate(date1))# type: ignore
+    d2 = time.mktime(parseDate(date2))# type: ignore
+    return abs(d1 - d2) < (60 * 5)
 
 """Tests for `suncalc.py`.
 Designed to be run on a microcontroller running micropython
@@ -12,7 +26,7 @@ class SunCalcTestCases():
   def setUp(self):
       """Setup for the test cases."""
 
-      self.utc_dt = (2013, 3, 5, 0, 0, 0 , 0, 0)
+      self.utc_dt = (2013, 3, 5, 0, 0, 0, 0, 0)
       self.utc_moon_dt = (2013, 3, 4, 0, 0, 0 , 0, 0)
 
       self.lat = 50.5
@@ -46,26 +60,28 @@ class SunCalcTestCases():
   def test_getPositions(self):
       """getPosition returns azimuth and altitude for the given time and location."""
       sunPos = suncalc.getPosition(self.utc_dt, self.lat, self.lng)
+      print(sunPos)
       assert near(sunPos["azimuth"], -2.5003175907168385)
       assert near(sunPos["altitude"], -0.7000406838781611)
 
   def test_getTimes(self):
       """getTimes returns sun phases for the given date and location."""
       times = suncalc.getTimes(self.utc_dt, self.lat, self.lng)
-
+      print(times)
       for time in self.sunTimes:
-        assert self.sunTimes[time],times[time]
+        assert dateNear(self.sunTimes[time],times[time])
 
   def test_getTimesWithHeight(self):
       """getTimes returns sun phases for the given date, location and height."""
       times = suncalc.getTimes(self.utc_dt, self.lat, self.lng, self.height)
 
       for time in self.sunHeightTimes:
-        assert self.sunHeightTimes[time],times[time]
+        assert dateNear(self.sunHeightTimes[time], times[time])
 
   def test_getMoonPosition(self):
       """Get moon position correctly."""
       moonPos = suncalc.getMoonPosition(self.utc_dt, self.lat, self.lng)
+      print(moonPos)
       assert near(moonPos["azimuth"], -0.9783999522438226)
       assert near(moonPos["altitude"], 0.006969727754891917)
       assert near(moonPos["distance"], 364121.37256256194)
