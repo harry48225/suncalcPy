@@ -89,40 +89,6 @@ def getSetJ(h, lw, phi, dec, n, M, L):
     a = approxTransit(w, lw, n)
     return solarTransitJ(a, M, L)
 
-# geocentric ecliptic coordinates of the moon
-def moonCoords(d: float):
-    L = rad * (218.316 + 13.176396 * d)
-    M = rad * (134.963 + 13.064993 * d) 
-    F = rad * (93.272 + 13.229350 * d)  
-
-    l  = L + rad * 6.289 * sin(M)
-    b  = rad * 5.128 * sin(F)
-    dt = 385001 - 20905 * cos(M)
-
-    return dict(
-        ra=rightAscension(l, b),
-        dec=declination(l, b),
-        dist=dt
-    )
-
-def getMoonIllumination(date: tuple):
-    """Gets illumination properties of the moon for the given time."""
-    d = toDays(date)
-    s = sunCoords(d)
-    m = moonCoords(d)
-
-    # distance from Earth to Sun in km
-    sdist = 149598000
-    phi = acos(sin(s["dec"]) * sin(m["dec"]) + cos(s["dec"]) * cos(m["dec"]) * cos(s["ra"] - m["ra"]))
-    inc = atan(sdist * sin(phi), m["dist"] - sdist * cos(phi))
-    angle = atan(cos(s["dec"]) * sin(s["ra"] - m["ra"]), sin(s["dec"]) * cos(m["dec"]) - cos(s["dec"]) * sin(m["dec"]) * cos(s["ra"] - m["ra"]))
-
-    return dict(
-        fraction=(1 + cos(inc)) / 2,
-        phase= 0.5 + 0.5 * inc * (-1 if angle < 0 else 1) / PI,
-        angle= angle
-    )
-
 def getSunrise(date: tuple, lat, lng):
     ret = getTimes(date, lat, lng)
     return ret["sunrise"]
@@ -162,91 +128,6 @@ def getTimes(date: tuple, lat, lng, height=0):
 
 def hoursLater(date: float, h) -> float:
     return date + (60 * 60 * h)
-
-def getMoonTimes(date: tuple, lat, lng) -> dict[str, str | bool]:
-    """Gets moon rise/set properties for the given time and location."""
-    date_as_list = list(date)
-    date_as_list[3:6] = [0,0,0]
-    date_no_time = tuple(date_as_list)
-    t = time.mktime(tuple(date_as_list))# type: ignore
-
-    hc = 0.133 * rad
-    h0 = getMoonPosition(date_no_time, lat, lng)["altitude"] - hc
-    rise = 0
-    sett = 0
-
-    # go in 2-hour chunks, each time seeing if a 3-point quadratic curve crosses zero (which means rise or set)
-    for i in range(1,25,2):
-        h1 = getMoonPosition(time.localtime(int(hoursLater(t, i))), lat, lng)["altitude"] - hc
-        h2 = getMoonPosition(time.localtime(int(hoursLater(t, i + 1))), lat, lng)["altitude"] - hc
-
-        a = (h0 + h2) / 2 - h1
-        b = (h2 - h0) / 2
-        xe = -b / (2 * a)
-        ye = (a * xe + b) * xe + h1
-        d = b * b - 4 * a * h1
-        roots = 0
-
-        if d >= 0:
-            dx = math.sqrt(d) / (abs(a) * 2)
-            x1 = xe - dx
-            x2 = xe + dx
-            if abs(x1) <= 1: 
-                roots += 1
-            if abs(x2) <= 1:
-                roots += 1
-            if x1 < -1:
-                x1 = x2
-
-        if roots == 1:
-            if h0 < 0: 
-                rise = i + x1
-            else:
-                sett = i + x1
-
-        elif roots == 2:
-            rise = i + (x2 if ye < 0 else x1)
-            sett = i + (x1 if ye < 0 else x2)
-
-        if (rise and sett):
-            break
-
-        h0 = h2
-
-    result: dict[str, str | bool] = dict()
-
-    if (rise):
-        result["rise"] = formatDate(time.localtime(int(hoursLater(t, rise))))
-    if (sett):
-        result["set"] = formatDate(time.localtime(int(hoursLater(t, sett))))
-
-    if (not rise and not sett):
-        value = 'alwaysUp' if ye > 0 else 'alwaysDown'
-        result[value] = True
-
-    return result
-
-def getMoonPosition(date: tuple, lat, lng):
-    """Gets positional attributes of the moon for the given time and location.""" 
-
-    lw  = rad * -lng
-    phi = rad * lat
-    d   = toDays(date)
-
-    c = moonCoords(d)
-    H = siderealTime(d, lw) - c["ra"]
-    h = altitude(H, phi, c["dec"])
-
-    # altitude correction for refraction
-    h = h + rad * 0.017 / tan(h + rad * 10.26 / (h + rad * 5.10))
-    pa = atan(sin(H), tan(phi) * cos(c["dec"]) - sin(c["dec"]) * cos(H))
-
-    return dict(
-        azimuth=azimuth(H, phi, c["dec"]),
-        altitude=h,
-        distance=c["dist"],
-        parallacticAngle=pa
-    )
 
 def getPosition(date: tuple, lat, lng):
     """Returns positional attributes of the sun for the given time and location."""
